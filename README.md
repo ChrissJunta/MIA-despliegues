@@ -1,4 +1,4 @@
-# Ejercicio Práctico Guiado — Semana 2/3
+# Ejercicio Práctico Guiado — Semana 3/3
 ## Monitoreo del Modelo e IA aplicada a la Industria 4.0
 
 Este proyecto ya viene **probado y funcionando** (fue verificado end-to-end
