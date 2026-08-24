@@ -164,46 +164,62 @@ el puerto 7860 internamente, pero lo mapeamos a 8000 en tu máquina).
 
 ---
 
-## Paso 8 — Despliegue en Hugging Face Spaces
+## Paso 8 — Despliegue en la nube (Render.com)
 
-1. Crea una cuenta en [huggingface.co/join](https://huggingface.co/join) si no tienes una.
-2. Click en tu avatar → **New Space**.
-3. Elige un nombre, y en **Space SDK** selecciona **Docker**.
-4. Sube (o haz `git push`) estos archivos a la raíz del Space:
-   - `Dockerfile`
-   - `main.py`
-   - `requirements.txt`
-   - `models/modelo_sensores.pkl`
-   - (opcional) `data/datos_sensor.csv`
+> **Nota:** la guía original proponía Hugging Face Spaces, pero HF cambió su
+> política y el SDK Docker de Spaces ahora requiere un plan de pago (PRO).
+> Este proyecto se despliega en **Render.com**, que sí ofrece un nivel
+> gratuito real para servicios Docker.
 
-   **📸 Captura 17:** el repositorio del Space con los archivos subidos.
+### 8.1 Ajustar el Dockerfile
 
-5. Espera a que el Space construya la imagen automáticamente (pestaña "Logs").
-6. Cuando el estado sea "Running", abre:
-   - `https://{tu-usuario}-{nombre-space}.hf.space/docs`
-   - `https://{tu-usuario}-{nombre-space}.hf.space/health`
-   - `https://{tu-usuario}-{nombre-space}.hf.space/ui`
+Render asigna el puerto dinámicamente mediante la variable de entorno
+`PORT`. Cambia la última línea del `Dockerfile` de forma exec a forma shell:
 
-   **📸 Captura 18:** la app corriendo en la URL pública de Hugging Face.
+```dockerfile
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-7860}
+```
 
-> **Local vs. cloud:** en local, el proceso corre directamente en tu
-> máquina, sin restricciones de red ni gestión de recursos — útil para
-> desarrollar y depurar rápido. En Hugging Face Spaces, la misma imagen
-> Docker se ejecuta en infraestructura administrada por HF, con una URL
-> pública, HTTPS y reinicio automático si el contenedor falla, pero con
-> límites de CPU/RAM del plan gratuito y sin acceso directo al sistema de
-> archivos del host — cualquier dato que quieras conservar entre
-> reinicios debe persistirse explícitamente (o regenerarse al arrancar,
-> como hace este proyecto con el CSV y el modelo).
+**📸 Captura 17 (a):** el `Dockerfile` editado.
 
----
+### 8.2 Subir el proyecto a GitHub
 
-## Resumen de archivos entregados
+```bash
+git init
+git add .
+git commit -m "Proyecto inicial"
+git branch -M main
+git remote add origin https://github.com/TU-USUARIO/proyecto-ia-industria.git
+git push -u origin main
+```
 
-| Archivo | Función |
-|---|---|
-| `train.py` | Genera `data/datos_sensor.csv` y entrena/serializa `models/modelo_sensores.pkl` |
-| `main.py` | API FastAPI (`/health`, `/predict`, `/monitor`) + dashboard Gradio en `/ui` |
-| `requirements.txt` | Dependencias fijadas y verificadas (incluye el pin de `huggingface_hub`) |
-| `Dockerfile` | Imagen para build/run local y despliegue en HF Spaces |
-| `data/`, `models/`, `reports/` | Carpetas de trabajo (ya contienen una corrida de referencia) |
+### 8.3 Crear el Web Service en Render
+
+1. Crea una cuenta en [render.com](https://render.com) (puedes usar tu cuenta de GitHub).
+2. **New** → **Web Service** → selecciona tu repositorio.
+3. Render detecta el `Dockerfile` automáticamente.
+4. Verifica que **Instance Type** esté en **Free**.
+5. Clic en **Create Web Service**.
+
+**📸 Captura 17:** el repositorio conectado y el Web Service creado en Render (pantalla como la del dashboard, con el estado del deploy).
+
+### 8.4 Verificar el despliegue
+
+Cuando el estado pase a **Live**, abre en el navegador:
+
+- `https://TU-SERVICIO.onrender.com/health`
+- `https://TU-SERVICIO.onrender.com/docs`
+- `https://TU-SERVICIO.onrender.com/ui`
+
+> El plan gratuito "duerme" el servicio tras ~15 minutos sin tráfico; la
+> primera petición después de eso puede tardar 30–50 segundos en responder.
+
+**📸 Captura 18:** la app funcionando en la URL pública de Render.
+
+> **Local vs. cloud:** en local, el proceso corre sin restricciones de red
+> ni gestión de recursos externos, ideal para desarrollar y depurar rápido.
+> En Render, la misma imagen Docker corre en infraestructura administrada:
+> URL pública con HTTPS, reinicio automático ante fallos, pero con límites
+> de CPU/RAM del plan gratuito (512 MB RAM) y sin persistencia de archivos
+> entre reinicios — por eso el proyecto regenera el CSV y el modelo si no
+> los encuentra al arrancar.
